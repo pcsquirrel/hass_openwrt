@@ -164,7 +164,12 @@ class DeviceCoordinator:
             "rc", "init", {"name": "firewall", "action": "restart"}
         )
 
-        await self.do_file_exec("conntrack", ["-D", "-g 193.83.20.249"], dict(), dict())
+        await self.do_file_exec(
+            "conntrack",
+            ["-D", f"-g {self.coordinator.data["redirect"][redirect_id]["dest_ip"]}"],
+            dict(),
+            dict(),
+        )
 
     async def set_wps(self, interface_id: str, enable: bool):
         await self._ubus.api_call(
