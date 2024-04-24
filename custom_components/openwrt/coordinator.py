@@ -44,7 +44,7 @@ class DeviceCoordinator:
         return list([x.strip() for x in value.split(",")])
 
     async def discover_wireless(self) -> dict:
-        result = dict(ap=[], mesh=[])
+        result = dict(ap=[], mesh=[], radio=[])
         if not self.is_api_supported("network.wireless"):
             return result
         wifi_devices = self._configured_devices("wifi_devices")
