@@ -80,7 +80,10 @@ class WirelessClientsSensor(OpenWrtSensor):
 
     @property
     def state(self):
-        return self.data['wireless'][self._interface_id]['clients']
+        try:
+            return self.data["wireless"][self._interface_id]["clients"]
+        except KeyError:
+            return 0
 
     @property
     def icon(self):
@@ -89,11 +92,14 @@ class WirelessClientsSensor(OpenWrtSensor):
     @property
     def extra_state_attributes(self):
         result = dict()
-        data = self.data['wireless'][self._interface_id]
-        for key, value in data.get("macs", {}).items():
-            signal = value.get("signal", 0)
-            result[key.upper()] = f"{signal} dBm"
-        return result
+        try:
+            data = self.data["wireless"][self._interface_id]
+            for key, value in data.get("macs", {}).items():
+                signal = value.get("signal", 0)
+                result[key.upper()] = f"{signal} dBm"
+            return result
+        except KeyError:
+            return 0
 
     @property
     def entity_category(self):

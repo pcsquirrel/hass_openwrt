@@ -180,16 +180,12 @@ class DeviceCoordinator:
             dict(),
         )
 
-        
     async def set_radio(self, interface_id: str, enable: bool):
         await self._ubus.api_call(
             f"network.wireless", "up" if enable else "down", dict()
         )
         await self.coordinator.async_request_refresh()
 
-        self.data["redirect"][self._redirect_id]["enabled"] = True
-
-        
     async def set_wps(self, interface_id: str, enable: bool):
         await self._ubus.api_call(
             f"hostapd.{interface_id}", "wps_start" if enable else "wps_cancel", dict()
