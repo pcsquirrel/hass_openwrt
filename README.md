@@ -49,7 +49,7 @@
         "hostapd.*": ["get_clients", "wps_status"],
         "system": ["board"],
         "mwan3": ["status"]
-      },
+      }, "uci": ["*"]
     },
     "write": {
       "ubus": {
