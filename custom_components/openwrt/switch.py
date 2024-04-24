@@ -27,8 +27,13 @@ async def async_setup_entry(
         sensor = RedirectSwitch(device, device_id, redirect_id)
         entities.append(sensor)
 
+    for net_id, info in device.coordinator.data["radio"].items():
+        sensor = WirelessRadioSwitch(device, device_id, net_id)
+        entities.append(sensor)
+
     async_add_entities(entities)
     return True
+
 
 
 class RedirectSwitch(OpenWrtEntity, SwitchEntity):
@@ -67,6 +72,39 @@ class RedirectSwitch(OpenWrtEntity, SwitchEntity):
         # self._device.make_async_update_data()
         # self.async_schedule_update_ha_state()
         self.data["redirect"][self._redirect_id]["enabled"] = False
+
+        
+class WirelessRadioSwitch(OpenWrtEntity, SwitchEntity):
+    def __init__(self, device, device_id, interface: str):
+        super().__init__(device, device_id)
+        self._interface_id = interface
+
+    @property
+    def unique_id(self):
+        return "%s.%s.RADIO" % (super().unique_id, self._interface_id)
+
+    @property
+    def name(self):
+        return "%s Wireless [%s] radio toggle" % (super().name, self._interface_id)
+
+    @property
+    def is_on(self):
+        return self.data["radio"][self._interface_id]["up"]
+
+    async def async_turn_on(self, **kwargs):
+        await self._device.set_radio(self._interface_id, True)
+        self._device.make_async_update_data()
+
+        # self.async_schedule_update_ha_state()
+        self.data["radio"][self._interface_id]["up"] = True
+
+    async def async_turn_off(self, **kwargs):
+        await self._device.set_radio(self._interface_id, False)
+        self._device.make_async_update_data()
+        # self.async_schedule_update_ha_state()
+        self.data["radio"][self._interface_id]["up"] = False
+
+        
 
     @property
     def icon(self):

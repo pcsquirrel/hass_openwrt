@@ -48,20 +48,27 @@ class DeviceCoordinator:
             return result
         wifi_devices = self._configured_devices("wifi_devices")
         try:
-            response = await self._ubus.api_call('network.wireless', 'status', {})
+            response = await self._ubus.api_call("network.wireless", "status", {})
             for radio, item in response.items():
-                if item.get('disabled', False):
-                    continue
-                for iface in item['interfaces']:
-                    conf = dict(ifname=iface['ifname'],
-                                network=iface['config']['network'][0])
-                    if iface['config']['mode'] == 'ap':
-                        if len(wifi_devices) and iface['ifname'] not in wifi_devices:
-                            continue
-                        result['ap'].append(conf)
-                    if iface['config']['mode'] == 'mesh':
-                        conf['mesh_id'] = iface['config']['mesh_id']
-                        result['mesh'].append(conf)
+                if item.get("up", True):
+                    for iface in item["interfaces"]:
+                        conf = dict(
+                            ifname=iface["ifname"],
+                            network=iface["config"]["network"][0],
+                        )
+                        if iface["config"]["mode"] == "ap":
+                            if (
+                                len(wifi_devices)
+                                and iface["ifname"] not in wifi_devices
+                            ):
+                                continue
+                            result["ap"].append(conf)
+                        if iface["config"]["mode"] == "mesh":
+                            conf["mesh_id"] = iface["config"]["mesh_id"]
+                            result["mesh"].append(conf)
+
+                result["radio"].append(dict(ifname=radio, up=item["up"]))
+
         except NameError as err:
             _LOGGER.warning(
                 f"Device [{self._id}] doesn't support wireless: {err}")
@@ -144,6 +151,8 @@ class DeviceCoordinator:
                 f"Interface [{interface_id}] doesn't support WPS: {err}")
         return result
 
+
+      
     async def set_redirect(self, redirect_id: str, enable: bool):
         await self._ubus.api_call(
             "uci",
@@ -171,6 +180,16 @@ class DeviceCoordinator:
             dict(),
         )
 
+        
+    async def set_radio(self, interface_id: str, enable: bool):
+        await self._ubus.api_call(
+            f"network.wireless", "up" if enable else "down", dict()
+        )
+        await self.coordinator.async_request_refresh()
+
+        self.data["redirect"][self._redirect_id]["enabled"] = True
+
+        
     async def set_wps(self, interface_id: str, enable: bool):
         await self._ubus.api_call(
             f"hostapd.{interface_id}", "wps_start" if enable else "wps_cancel", dict()
@@ -234,6 +253,12 @@ class DeviceCoordinator:
                 "stdout": result.get("stdout", ""),
             },
         )
+
+    async def update_radio(self, configs) -> dict:
+        result = dict()
+        for item in configs:
+            result[item["ifname"]] = dict(up=item["up"])
+        return result
 
     async def update_ap(self, configs) -> dict:
         result = dict()
@@ -313,10 +338,12 @@ class DeviceCoordinator:
                 result["info"] = await self.update_info()
                 result["redirect"] = await self.update_redirect()
                 wireless_config = await self.discover_wireless()
-                result['wireless'] = await self.update_ap(wireless_config['ap'])
-                result['mesh'] = await self.update_mesh(wireless_config['mesh'])
-                result["mwan3"] = await self.discover_mwan3()
-                result["wan"] = await self.update_wan_info()
+                result['wireless'] = await self.update_ap(wireless_config["ap"])
+                result['mesh'] = await self.update_mesh(wireless_config["mesh"])
+                result['radio'] = await self.update_radio(wireless_config["radio"])
+
+                result['mwan3'] = await self.discover_mwan3()
+                result['wan'] = await self.update_wan_info()
                 _LOGGER.debug(f"Full update [{self._id}]: {result}")
                 return result
             except PermissionError as err:
