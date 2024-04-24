@@ -13,6 +13,7 @@
   * WAN interfaces Rx&Tx bytes counters (if configured)
 * Switches:
   * Control WPS status
+  * Control Wifi radio state (switch on and off)
 * Binary sensors:
   * `mwan3` connectivity status
 * Services:
@@ -43,7 +44,7 @@
     "description": "Home Assistant OpenWrt integration permissions",
     "read": {
       "ubus": {
-        "network.wireless": ["status"],
+        "network.wireless": ["status", "up", "down"],
         "network.device": ["status"],
         "iwinfo": ["info", "assoclist"],
         "hostapd.*": ["get_clients", "wps_status"],
